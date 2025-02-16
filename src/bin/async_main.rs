@@ -7,6 +7,8 @@ use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
 use log::info;
 
+use unbar_rs::Unbar;
+
 extern crate alloc;
 
 #[esp_hal_embassy::main]
@@ -20,18 +22,7 @@ async fn main(spawner: Spawner) {
 
     esp_println::logger::init_logger_from_env();
 
-    let timer_group1 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG1);
-    esp_hal_embassy::init(timer_group1.timer0);
-
-    info!("Embassy initialized!");
-
-    let timer_group0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
-    let _init = esp_wifi::init(
-        timer_group0.timer0,
-        esp_hal::rng::Rng::new(peripherals.RNG),
-        peripherals.RADIO_CLK,
-    )
-    .unwrap();
+    let _unbar = Unbar::new(peripherals);
 
     // TODO: Spawn some tasks
     let _ = spawner;
