@@ -2,6 +2,7 @@
 #![no_main]
 
 use embassy_executor::Spawner;
+use embassy_time::Instant;
 use embedded_hal_bus::util::AtomicCell;
 use esp_backtrace as _;
 use esp_hal::{
@@ -91,6 +92,6 @@ async fn main(spawner: Spawner) {
     debug!("Display task spawned");
 
     loop {
-        embassy_time::Timer::after_secs(u64::MAX).await;
+        embassy_time::Timer::at(Instant::MAX).await;
     }
 }

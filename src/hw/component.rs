@@ -6,11 +6,12 @@ use esp_hal::{
     ledc::{self, channel::ChannelIFace as _, timer::TimerIFace},
     Async,
 };
-use log::debug;
+use log::*;
 
 pub struct Imu<'a> {
     pub bno055: Bno055<i2c::master::I2c<'a, Async>>,
     reset: gpio::Output<'a>,
+    last_data: bno055::mint::Vector3<f32>,
 }
 
 impl<'a> Imu<'a> {
@@ -21,10 +22,14 @@ impl<'a> Imu<'a> {
     ) -> Self {
         debug!("Init IMU");
         let bno055 = Bno055::new(i2c).with_alternative_address();
-        let mut imu = Self { bno055, reset };
+        let mut imu = Self {
+            bno055,
+            reset,
+            last_data: bno055::mint::Vector3::from_slice(&[0.0, 0.0, 0.0]),
+        };
         imu.hard_reset().await;
         while let Err(e) = imu.init(delay).await {
-            debug!("IMU init failed: {:?}", e);
+            error!("IMU init failed: {:?} retrying...", e);
         }
         debug!("IMU init success");
         imu
@@ -42,6 +47,25 @@ impl<'a> Imu<'a> {
         self.reset.set_low();
         embassy_time::Timer::after(Duration::from_micros(1)).await;
         self.reset.set_high();
+    }
+
+    pub async fn soft_reset(
+        &mut self,
+        delay: &mut Delay,
+    ) -> Result<(), bno055::Error<i2c::master::Error>> {
+        self.bno055.soft_reset(delay)
+    }
+
+    pub async fn accel_data(
+        &mut self,
+    ) -> Result<bno055::mint::Vector3<f32>, bno055::Error<i2c::master::Error>> {
+        let data = self.bno055.accel_data()?;
+        if data.x == -0.01 || data.y == -0.01 || data.z == -0.01 {
+            warn!("IMU returned invalid value");
+            return Ok(self.last_data);
+        }
+        self.last_data = data;
+        Ok(data)
     }
 }
 

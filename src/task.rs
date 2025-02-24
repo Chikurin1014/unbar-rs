@@ -24,25 +24,20 @@ pub async fn controll(
     loop {
         let delay_timer = Timer::after_millis(10);
 
-        let res = hardware.imu.bno055.accel_data();
-        let input;
-        if res.is_ok() {
-            input = res.unwrap();
-        } else {
-            error!("IMU error: {:?}", res.unwrap_err());
-            continue;
-        }
-        if input.x == -0.01 || input.y == -0.01 || input.z == -0.01 {
-            warn!("IMU returned invalid value");
-            continue;
-        }
+        let input = match hardware.imu.accel_data().await {
+            Ok(data) => data,
+            Err(e) => {
+                error!("IMU error: {:?}", e);
+                continue;
+            }
+        };
 
         let output = system.step(&());
         hardware.set_motor_speed(&output).unwrap();
-        info!("ax:    {:e}", input.x);
-        info!("ay:    {:e}", input.y);
-        info!("az:    {:e}", input.z);
-        info!("theta: {:e}", atan2f(input.y, input.z));
+        info!("ax:    {:e<.3}", input.x);
+        info!("ay:    {:e<.3}", input.y);
+        info!("az:    {:e<.3}", input.z);
+        info!("theta: {:e<.3}", atan2f(input.y, input.z));
 
         delay_timer.await;
     }
