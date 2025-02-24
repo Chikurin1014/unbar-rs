@@ -1,31 +1,53 @@
-use display_interface_spi::SPIInterface;
 use embassy_time::Delay;
-use embedded_hal_bus::spi::AtomicDevice;
 use esp_hal::{
     gpio::Output,
     i2c,
     ledc::{self, HighSpeed},
-    spi, Async,
+    Async,
 };
-
-use ili9341::Ili9341;
 
 pub mod component;
 
 use component::{Imu, Motor};
 
 pub struct Hardware<'a> {
-    pub left_motor: Motor<'a>,
-    pub right_motor: Motor<'a>,
+    pub left_motor: Motor<'a, HighSpeed>,
+    pub right_motor: Motor<'a, HighSpeed>,
     pub imu: Imu<'a>,
-    pub display: Ili9341<
-        SPIInterface<AtomicDevice<'a, spi::master::Spi<'a, Async>, Output<'a>, Delay>, Output<'a>>,
-        Output<'a>,
-    >,
+}
+
+pub struct HardwareBuilder<'a> {
+    left_motor_dir1: Output<'a>,
+    left_motor_dir2: Output<'a>,
+    left_motor_pwm_ch: ledc::channel::Channel<'a, HighSpeed>,
+    right_motor_dir1: Output<'a>,
+    right_motor_dir2: Output<'a>,
+    right_motor_pwm_ch: ledc::channel::Channel<'a, HighSpeed>,
+    i2c: i2c::master::I2c<'a, Async>,
+    imu_reset: Output<'a>,
+    delay: Delay,
+}
+
+impl<'a> HardwareBuilder<'a> {
+    pub async fn build(self) -> Hardware<'a> {
+        Hardware {
+            left_motor: Motor::new(
+                self.left_motor_dir1,
+                self.left_motor_dir2,
+                self.left_motor_pwm_ch,
+            ),
+            right_motor: Motor::new(
+                self.right_motor_dir1,
+                self.right_motor_dir2,
+                self.right_motor_pwm_ch,
+            ),
+            imu: Imu::new(self.i2c, self.imu_reset, &mut self.delay.clone()).await,
+        }
+    }
 }
 
 impl<'a> Hardware<'a> {
-    pub async fn new(
+    pub fn builder(
         left_motor_dir1: Output<'a>,
         left_motor_dir2: Output<'a>,
         left_motor_pwm_ch: ledc::channel::Channel<'a, HighSpeed>,
@@ -34,26 +56,27 @@ impl<'a> Hardware<'a> {
         right_motor_pwm_ch: ledc::channel::Channel<'a, HighSpeed>,
         i2c: i2c::master::I2c<'a, Async>,
         imu_reset: Output<'a>,
-        spi_interface: SPIInterface<
-            AtomicDevice<'a, spi::master::Spi<'a, Async>, Output<'a>, Delay>,
-            Output<'a>,
-        >,
-        display_reset: Output<'a>,
-        mut delay: Delay,
-    ) -> Self {
-        Self {
-            left_motor: Motor::new(left_motor_dir1, left_motor_dir2, left_motor_pwm_ch),
-            right_motor: Motor::new(right_motor_dir1, right_motor_dir2, right_motor_pwm_ch),
-            imu: Imu::new(i2c, imu_reset, &mut delay).await,
-            display: Ili9341::new(
-                spi_interface,
-                display_reset,
-                &mut delay,
-                ili9341::Orientation::Portrait,
-                ili9341::DisplaySize240x320,
-            )
-            .unwrap(),
+        delay: Delay,
+    ) -> HardwareBuilder<'a> {
+        HardwareBuilder {
+            left_motor_dir1,
+            left_motor_dir2,
+            left_motor_pwm_ch,
+            right_motor_dir1,
+            right_motor_dir2,
+            right_motor_pwm_ch,
+            i2c,
+            imu_reset,
+            delay: delay,
         }
+    }
+
+    pub fn attach_timer(
+        &mut self,
+        timer: &'a ledc::timer::Timer<'a, HighSpeed>,
+    ) -> Result<(), ledc::channel::Error> {
+        self.left_motor.attach_timer(timer)?;
+        self.right_motor.attach_timer(timer)
     }
 
     pub fn set_motor_speed(

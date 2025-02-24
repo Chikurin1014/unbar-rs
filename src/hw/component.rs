@@ -3,7 +3,7 @@ use core::result::Result;
 use embassy_time::{Delay, Duration};
 use esp_hal::{
     gpio, i2c,
-    ledc::{self, channel::ChannelIFace as _},
+    ledc::{self, channel::ChannelIFace as _, timer::TimerIFace},
     Async,
 };
 use log::debug;
@@ -45,19 +45,30 @@ impl<'a> Imu<'a> {
     }
 }
 
-pub struct Motor<'a> {
+pub struct Motor<'a, S: ledc::timer::TimerSpeed> {
     dir1: gpio::Output<'a>,
     dir2: gpio::Output<'a>,
-    pwm_ch: ledc::channel::Channel<'a, ledc::HighSpeed>,
+    pwm_ch: ledc::channel::Channel<'a, S>,
 }
 
-impl<'a> Motor<'a> {
+impl<'a, S: ledc::timer::TimerSpeed> Motor<'a, S> {
     pub fn new(
         dir1: gpio::Output<'a>,
         dir2: gpio::Output<'a>,
-        pwm_ch: ledc::channel::Channel<'a, ledc::HighSpeed>,
+        pwm_ch: ledc::channel::Channel<'a, S>,
     ) -> Self {
         Self { dir1, dir2, pwm_ch }
+    }
+
+    pub fn attach_timer(
+        &mut self,
+        timer: &'a impl TimerIFace<S>,
+    ) -> Result<(), ledc::channel::Error> {
+        self.pwm_ch.configure(ledc::channel::config::Config {
+            timer,
+            duty_pct: 0,
+            pin_config: ledc::channel::config::PinConfig::PushPull,
+        })
     }
 
     pub fn set_speed(&mut self, speed: i16) -> Result<(), ledc::channel::Error> {

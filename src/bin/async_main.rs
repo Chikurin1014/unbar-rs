@@ -2,25 +2,18 @@
 #![no_main]
 
 use embassy_executor::Spawner;
-use embassy_time::Timer;
-use embedded_hal_bus::{spi::AtomicDevice, util::AtomicCell};
+use embedded_hal_bus::util::AtomicCell;
 use esp_backtrace as _;
 use esp_hal::{
     gpio, i2c,
-    ledc::{self, channel::ChannelIFace as _, timer::TimerIFace as _},
+    ledc::{self, timer::TimerIFace as _},
     spi,
     time::RateExtU32 as _,
     timer::timg,
 };
-use libm::*;
 use log::*;
 
-use unbar_rs::{
-    controll::{self, system::SystemIFace as _},
-    hw,
-};
-
-extern crate alloc;
+use unbar_rs::{controll, hw, task};
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
@@ -57,33 +50,13 @@ async fn main(spawner: Spawner) {
             .into_async(),
     );
 
-    let mut _hw = hw::Hardware::new(
+    let hardware = hw::Hardware::builder(
         gpio::Output::new(peripherals.GPIO4, gpio::Level::Low),
         gpio::Output::new(peripherals.GPIO16, gpio::Level::Low),
-        {
-            let mut ch =
-                ledc::channel::Channel::new(ledc::channel::Number::Channel0, peripherals.GPIO17);
-            ch.configure(ledc::channel::config::Config {
-                timer: &timer,
-                duty_pct: 0,
-                pin_config: ledc::channel::config::PinConfig::PushPull,
-            })
-            .unwrap();
-            ch
-        },
+        ledc::channel::Channel::new(ledc::channel::Number::Channel0, peripherals.GPIO17),
         gpio::Output::new(peripherals.GPIO14, gpio::Level::Low),
         gpio::Output::new(peripherals.GPIO33, gpio::Level::Low),
-        {
-            let mut ch =
-                ledc::channel::Channel::new(ledc::channel::Number::Channel1, peripherals.GPIO32);
-            ch.configure(ledc::channel::config::Config {
-                timer: &timer,
-                duty_pct: 0,
-                pin_config: ledc::channel::config::PinConfig::PushPull,
-            })
-            .unwrap();
-            ch
-        },
+        ledc::channel::Channel::new(ledc::channel::Number::Channel1, peripherals.GPIO32),
         i2c::master::I2c::new(
             peripherals.I2C0,
             i2c::master::Config::default()
@@ -95,24 +68,29 @@ async fn main(spawner: Spawner) {
         .with_sda(peripherals.GPIO21)
         .into_async(),
         gpio::Output::new(peripherals.GPIO27, gpio::Level::High),
-        display_interface_spi::SPIInterface::new(
-            AtomicDevice::new(
-                &spi,
-                gpio::Output::new(peripherals.GPIO5, gpio::Level::Low),
-                delay.clone(),
-            )
-            .unwrap(),
-            gpio::Output::new(peripherals.GPIO2, gpio::Level::Low),
-        ),
-        gpio::Output::new(peripherals.GPIO15, gpio::Level::Low),
-        delay,
+        delay.clone(),
     )
+    .build()
     .await;
 
-    // TODO: Spawn some tasks
-    let _ = spawner;
+    let system = controll::system::System::new();
 
-    loop {}
+    spawner
+        .spawn(task::controll(hardware, timer, system))
+        .unwrap();
+    debug!("Controll task spawned");
+    spawner
+        .spawn(task::display(
+            spi,
+            gpio::Output::new(peripherals.GPIO5, gpio::Level::Low),
+            gpio::Output::new(peripherals.GPIO2, gpio::Level::Low),
+            gpio::Output::new(peripherals.GPIO15, gpio::Level::Low),
+            delay,
+        ))
+        .unwrap();
+    debug!("Display task spawned");
 
-    // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/v0.23.1/examples/src/bin
+    loop {
+        embassy_time::Timer::after_secs(u64::MAX).await;
+    }
 }
