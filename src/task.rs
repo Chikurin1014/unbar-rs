@@ -6,7 +6,6 @@ use esp_hal::{
     ledc::{self, HighSpeed},
     spi, Async,
 };
-use libm::*;
 use log::*;
 
 use crate::{
@@ -32,12 +31,17 @@ pub async fn controll(
             }
         };
 
-        let output = system.step(&());
-        hardware.set_motor_speed(&output).unwrap();
-        info!("ax:    {:e<.3}", input.x);
-        info!("ay:    {:e<.3}", input.y);
-        info!("az:    {:e<.3}", input.z);
-        info!("theta: {:e<.3}", atan2f(input.y, input.z));
+        let output = system.step(&input);
+        info!("output: {:?}", output);
+        match hardware.set_motor_speed(&output) {
+            Ok(_) => {}
+            Err(ledc::channel::Error::Duty) => {
+                warn!("Duty is invalid");
+            }
+            Err(e) => {
+                error!("Motor PWM error: {:?}", e);
+            }
+        }
 
         delay_timer.await;
     }
