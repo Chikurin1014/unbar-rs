@@ -45,7 +45,7 @@ impl SystemIFace for System {
         let e = target.y.atan2(target.z) - input.y.atan2(input.z);
         let de = e - self.error;
 
-        const KP: f32 = 8.0 / PI;
+        const KP: f32 = 6.0 / PI;
         const TD: f32 = 0.0;
         const KD: f32 = TD * KP;
 
