@@ -27,6 +27,12 @@ pub trait SystemIFace {
     fn step(&mut self, input: &Self::Input) -> Self::Output;
 }
 
+impl Default for System {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SystemIFace for System {
     type Input = bno055::mint::Vector3<f32>;
     type Output = super::output::MotorSpeed;
