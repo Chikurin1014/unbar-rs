@@ -101,28 +101,6 @@ impl<'a> HardwareBuilder<'a> {
 }
 
 impl<'a> Hardware<'a> {
-    // pub fn builder(
-    //     left_motor_dir1: gpio::Output<'a>,
-    //     left_motor_dir2: gpio::Output<'a>,
-    //     left_motor_pwm_ch: ledc::channel::Channel<'a, HighSpeed>,
-    //     right_motor_dir1: gpio::Output<'a>,
-    //     right_motor_dir2: gpio::Output<'a>,
-    //     right_motor_pwm_ch: ledc::channel::Channel<'a, HighSpeed>,
-    //     i2c: i2c::master::I2c<'a, Async>,
-    //     imu_reset: gpio::Output<'a>,
-    //     delay: Delay,
-    // ) -> HardwareBuilder<'a> {
-    //     HardwareBuilder {
-    //         left_motor_dir1,
-    //         left_motor_dir2,
-    //         left_motor_pwm_ch,
-    //         right_motor_dir1,
-    //         right_motor_dir2,
-    //         right_motor_pwm_ch,
-    //         i2c,
-    //         imu_reset,
-    //         delay: delay,
-    //     }
     pub fn builder() -> HardwareBuilder<'a> {
         HardwareBuilder {
             left_motor_dir1: None,
