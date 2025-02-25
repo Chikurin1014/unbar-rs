@@ -51,28 +51,40 @@ async fn main(spawner: Spawner) {
             .into_async(),
     );
 
-    let hardware = hw::Hardware::builder(
-        gpio::Output::new(peripherals.GPIO4, gpio::Level::Low),
-        gpio::Output::new(peripherals.GPIO16, gpio::Level::Low),
-        ledc::channel::Channel::new(ledc::channel::Number::Channel0, peripherals.GPIO17),
-        gpio::Output::new(peripherals.GPIO14, gpio::Level::Low),
-        gpio::Output::new(peripherals.GPIO33, gpio::Level::Low),
-        ledc::channel::Channel::new(ledc::channel::Number::Channel1, peripherals.GPIO32),
-        i2c::master::I2c::new(
-            peripherals.I2C0,
-            i2c::master::Config::default()
-                .with_frequency(50.kHz())
-                .with_timeout(i2c::master::BusTimeout::Maximum),
+    let hardware = hw::Hardware::builder()
+        .left_motor(
+            gpio::Output::new(peripherals.GPIO4, gpio::Level::Low),
+            gpio::Output::new(peripherals.GPIO16, gpio::Level::Low),
+            ledc::channel::Channel::new(
+                ledc::channel::Number::Channel0,
+                gpio::Output::new(peripherals.GPIO17, gpio::Level::Low),
+            ),
         )
-        .unwrap()
-        .with_scl(peripherals.GPIO22)
-        .with_sda(peripherals.GPIO21)
-        .into_async(),
-        gpio::Output::new(peripherals.GPIO27, gpio::Level::High),
-        delay.clone(),
-    )
-    .build()
-    .await;
+        .right_motor(
+            gpio::Output::new(peripherals.GPIO14, gpio::Level::Low),
+            gpio::Output::new(peripherals.GPIO33, gpio::Level::Low),
+            ledc::channel::Channel::new(
+                ledc::channel::Number::Channel1,
+                gpio::Output::new(peripherals.GPIO32, gpio::Level::Low),
+            ),
+        )
+        .imu(
+            i2c::master::I2c::new(
+                peripherals.I2C0,
+                i2c::master::Config::default()
+                    .with_frequency(50.kHz())
+                    .with_timeout(i2c::master::BusTimeout::Maximum),
+            )
+            .unwrap()
+            .with_scl(peripherals.GPIO22)
+            .with_sda(peripherals.GPIO21)
+            .into_async(),
+            gpio::Output::new(peripherals.GPIO27, gpio::Level::High),
+        )
+        .delay(delay.clone())
+        .build()
+        .await
+        .unwrap();
 
     let system = controll::system::System::new();
 
