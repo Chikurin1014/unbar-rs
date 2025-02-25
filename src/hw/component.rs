@@ -95,9 +95,9 @@ impl<'a, S: ledc::timer::TimerSpeed> Motor<'a, S> {
         })
     }
 
-    pub fn set_speed(&mut self, speed: i16) -> Result<(), ledc::channel::Error> {
+    pub fn set_speed(&mut self, speed: i8) -> Result<(), ledc::channel::Error> {
         let sgn = speed.signum();
-        let abs = speed.abs() as u8;
+        let abs = speed.unsigned_abs();
 
         match sgn {
             0 => {

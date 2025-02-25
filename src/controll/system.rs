@@ -49,8 +49,8 @@ impl SystemIFace for System {
         const TD: f32 = 0.0;
         const KD: f32 = TD * KP;
 
-        let left = -((KP * e + KD * de / dt) * 100.0) as i16;
-        let right = ((KP * e + KD * de / dt) * 100.0) as i16;
+        let left = -((KP * e + KD * de / dt) * 100.0) as i8;
+        let right = ((KP * e + KD * de / dt) * 100.0) as i8;
 
         let output = Self::Output { left, right };
 
