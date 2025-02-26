@@ -44,9 +44,10 @@ impl<V: Real> LowPassFilterIFace for LowPassFilter<V> {
         time_const: Self::Time,
     ) -> Self::Value {
         let dt = time - self.time;
-        self.time = time;
+        let t = time_const.max(dt);
 
-        self.value = (V::one() - dt / time_const) * self.value + dt / time_const * input;
+        self.value = (V::one() - dt / t) * self.value + dt / t * input;
+        self.time = time;
 
         self.value
     }

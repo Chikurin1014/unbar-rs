@@ -32,9 +32,7 @@ pub async fn control(
         };
 
         let output = system.step(&input);
-        if env!("ESP_LOG").contains("debug") {
-            esp_println::print!(">left:{}\n>right:{}\n", output.left, output.right);
-        }
+
         match hardware.set_motor_speed(&output) {
             Ok(_) => {}
             Err(ledc::channel::Error::Duty) => {
@@ -43,6 +41,15 @@ pub async fn control(
             Err(e) => {
                 error!("Motor PWM error: {:?}", e);
             }
+        }
+
+        // Plot when ESP_LOG=debug
+        if env!("ESP_LOG").contains("debug") {
+            esp_println::print!(
+                ">e:{}\n>de:{}\n",
+                system.get_state().error,
+                system.get_state().error_diff
+            );
         }
 
         delay_timer.await;

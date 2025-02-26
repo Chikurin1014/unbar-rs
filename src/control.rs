@@ -2,4 +2,4 @@ mod input;
 mod output;
 mod system;
 
-pub use system::{System, SystemIFace};
+pub use system::{System, SystemIFace, SystemState};
