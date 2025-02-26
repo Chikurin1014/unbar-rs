@@ -64,7 +64,7 @@ impl Default for System {
     }
 }
 
-impl<'a> SystemIFace<'a> for System {
+impl SystemIFace<'_> for System {
     type Input = bno055::mint::Vector3<f32>;
     type Output = super::output::MotorSpeed;
     type State = SystemState;
