@@ -14,7 +14,7 @@ use esp_hal::{
 };
 use log::*;
 
-use unbar_rs::{controll, hw, task};
+use unbar_rs::{control, hw, task};
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
@@ -38,9 +38,9 @@ async fn main(spawner: Spawner) {
     let mut timer = ledc.timer::<ledc::HighSpeed>(ledc::timer::Number::Timer0);
     timer
         .configure(ledc::timer::config::Config {
-            duty: ledc::timer::config::Duty::Duty10Bit,
+            duty: ledc::timer::config::Duty::Duty12Bit,
             clock_source: ledc::timer::HSClockSource::APBClk,
-            frequency: 1.kHz(),
+            frequency: 10.kHz(),
         })
         .unwrap();
 
@@ -86,10 +86,10 @@ async fn main(spawner: Spawner) {
         .await
         .unwrap();
 
-    let system = controll::system::System::new();
+    let system = control::System::new();
 
     spawner
-        .spawn(task::controll(hardware, timer, system))
+        .spawn(task::control(hardware, timer, system))
         .unwrap();
     debug!("Controll task spawned");
     spawner

@@ -5,9 +5,10 @@ use esp_hal::{
     Async,
 };
 
-pub mod component;
+mod component;
 
-use component::{Imu, Motor};
+use crate::control;
+pub use component::{Imu, Motor};
 
 pub struct Hardware<'a> {
     pub left_motor: Motor<'a, HighSpeed>,
@@ -125,7 +126,7 @@ impl<'a> Hardware<'a> {
 
     pub fn set_motor_speed(
         &mut self,
-        speed: &crate::controll::output::MotorSpeed,
+        speed: &<control::System as control::SystemIFace>::Output,
     ) -> Result<(), ledc::channel::Error> {
         self.left_motor.set_speed(speed.left)?;
         self.right_motor.set_speed(speed.right)

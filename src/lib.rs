@@ -1,5 +1,5 @@
 #![no_std]
 
-pub mod controll;
+pub mod control;
 pub mod hw;
 pub mod task;

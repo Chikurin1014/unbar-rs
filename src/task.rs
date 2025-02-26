@@ -9,12 +9,12 @@ use esp_hal::{
 use log::*;
 
 use crate::{
-    controll::system::{System, SystemIFace as _},
+    control::{System, SystemIFace as _},
     hw::Hardware,
 };
 
 #[embassy_executor::task]
-pub async fn controll(
+pub async fn control(
     mut hardware: Hardware<'static>,
     ledc_timer: ledc::timer::Timer<'static, HighSpeed>,
     mut system: System,
@@ -32,7 +32,9 @@ pub async fn controll(
         };
 
         let output = system.step(&input);
-        info!("output: {:?}", output);
+        if env!("ESP_LOG").contains("debug") {
+            esp_println::print!(">left:{}\n>right:{}\n", output.left, output.right);
+        }
         match hardware.set_motor_speed(&output) {
             Ok(_) => {}
             Err(ledc::channel::Error::Duty) => {
